@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>✈ Travel Edit</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap');
+
+:root {
+  --bg: #0a0a0c;
+  --surface: #131318;
+  --surface2: #1c1c24;
+  --border: #25252f;
+  --accent: #c8ff00;
+  --accent2: #ff5c35;
+  --blue: #5b8cff;
+  --green: #3ddc84;
+  --text: #ececec;
+  --muted: #5a5a6a;
+  --nav-h: 60px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  height: 100%; height: 100dvh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  padding-top: max(12px, env(safe-area-inset-top));
+  background: rgba(10,10,12,0.95);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  z-index: 50;
+}
+.logo {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 1.05rem;
+  letter-spacing: -0.02em;
+  color: var(--accent);
+}
+.logo span { color: var(--text); }
+.topbar-right { display: flex; gap: 8px; align-items: center; }
+.icon-btn {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem; cursor: pointer;
+  transition: all 0.15s;
+}
+.icon-btn:active { background: var(--border); transform: scale(0.94); }
+.icon-btn.accent { background: var(--accent); color: #0a0a0c; border-color: var(--accent); }
+
+.content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+
+.preview-wrap {
+  background: #000;
+  position: relative;
+  aspect-ratio: 16/9;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.preview-wrap img,
+.preview-wrap video {
+  width: 100%; height: 100%;
+  object-fit: contain;
+  display: none;
+}
+.preview-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%; height: 100%;
+  color: var(--muted);
+}
+.preview-empty-state .big-icon { font-size: 2.5rem; opacity: 0.3; }
+.preview-empty-state p { font-size: 0.8rem; text-align: center; line-height: 1.5; }
+.preview-title-overlay {
+  position: absolute; inset: 0;
+  display: none;
+  align-items: center; justify-content: center;
+  background: rgba(0,0,0,0.85);
+}
+.preview-title-overlay .title-txt {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: clamp(1.2rem, 5vw, 2rem);
+  color: white;
+  text-align: center;
+  padding: 0 24px;
+  text-shadow: 0 2px 16px rgba(0,0,0,0.6);
+}
+.preview-watermark {
+  position: absolute; bottom: 8px; right: 12px;
+  font-size: 0.65rem; color: rgba(255,255,255,0.45);
+  display: none;
+}
+
+.preview-nav {
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+  gap: 8px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.pnav-btn {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 7px 14px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+.pnav-btn:active { opacity: 0.7; }
+.clip-counter {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-family: 'Syne', sans-serif;
+}
+
+.section {
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.section-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.section-action {
+  font-size: 0.75rem;
+  color: var(--accent);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(200,255,0,0.08);
+}
+.section-action:active { opacity: 0.7; }
+
+.upload-zone {
+  border: 1.5px dashed var(--border);
+  border-radius: 12px;
+  padding: 22px;
+  text-align: center;
+  position: relative;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+.upload-zone.drag-over {
+  border-color: var(--accent);
+  background: rgba(200,255,0,0.04);
+}
+.upload-zone input {
+  position: absolute; inset: 0;
+  opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  font-size: 0;
+}
+.upload-icon { font-size: 2rem; margin-bottom: 6px; }
+.upload-zone p { font-size: 0.8rem; color: var(--muted); line-height: 1.5; }
+.upload-zone strong { color: var(--accent); }
+
+.media-scroll {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.media-scroll::-webkit-scrollbar { display: none; }
+
+.media-thumb {
+  flex-shrink: 0;
+  width: 90px;
+  height: 64px;
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+  border: 1.5px solid var(--border);
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.media-thumb:active { opacity: 0.8; transform: scale(0.96); }
+.media-thumb.sel { border-color: var(--accent2); }
+.media-thumb img, .media-thumb video {
+  width: 100%; height: 100%; object-fit: cover; pointer-events: none;
+}
+.thumb-badge {
+  position: absolute; top: 3px; left: 3px;
+  background: rgba(0,0,0,0.7);
+  border-radius: 3px; padding: 1px 4px;
+  font-size: 0.58rem; font-family: 'Syne', sans-serif;
+  font-weight: 700; letter-spacing: 0.05em;
+}
+.thumb-badge.photo { color: var(--accent); }
+.thumb-badge.video { color: var(--accent2); }
+.thumb-dur {
+  position: absolute; bottom: 3px; right: 4px;
+  font-size: 0.58rem; color: #fff; opacity: 0.8;
+  font-weight: 600;
+}
+.thumb-rm {
+  position: absolute; top: 2px; right: 2px;
+  width: 18px; height: 18px;
+  background: rgba(255,60,60,0.85);
+  border: none; border-radius: 50%;
+  color: white; font-size: 0.55rem;
+  cursor: pointer; display: flex;
+  align-items: center; justify-content: center;
+}
+
+.timeline-scroll {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 4px 2px 8px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  align-items: center;
+  min-height: 52px;
+}
+.timeline-scroll::-webkit-scrollbar { display: none; }
+
+.tl-clip {
+  flex-shrink: 0;
+  height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 10px;
+  font-size: 0.7rem;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  white-space: nowrap;
+  transition: border-color 0.15s;
+  min-width: 56px;
+}
+.tl-clip:active { opacity: 0.75; }
+.tl-clip.active { border-color: rgba(255,255,255,0.5); }
+.tl-clip.clip-photo { background: rgba(200,255,0,0.12); color: var(--accent); }
+.tl-clip.clip-video { background: rgba(255,92,53,0.12); color: var(--accent2); }
+.tl-clip.clip-title { background: rgba(91,140,255,0.15); color: var(--blue); }
+.tl-clip.clip-bgm  { background: rgba(61,220,132,0.12); color: var(--green); }
+.tl-rm { background: none; border: none; color: inherit; font-size: 0.7rem; opacity: 0.5; cursor: pointer; padding: 0; margin-left: 2px; }
+
+.tl-empty { font-size: 0.75rem; color: var(--muted); padding: 8px 4px; }
+
+.field { margin-bottom: 14px; }
+.field label {
+  display: block;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+.field input[type=text],
+.field input[type=number],
+.field select,
+.field textarea {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  color: var(--text);
+  padding: 10px 13px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.9rem;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.field input:focus,
+.field select:focus { border-color: var(--accent); }
+.field input[type=range] { width: 100%; accent-color: var(--accent); }
+.range-row { display: flex; justify-content: space-between; font-size: 0.68rem; color: var(--muted); margin-top: 3px; }
+
+.bgm-upload {
+  border: 1.5px dashed var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  text-align: center;
+  position: relative;
+  cursor: pointer;
+}
+.bgm-upload input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+.bgm-upload p { font-size: 0.78rem; color: var(--muted); }
+.bgm-active { font-size: 0.8rem; color: var(--green); margin-top: 6px; }
+
+.sheet-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 200;
+  display: none;
+  align-items: flex-end;
+}
+.sheet-overlay.open { display: flex; }
+.sheet {
+  width: 100%;
+  background: var(--surface);
+  border-radius: 18px 18px 0 0;
+  padding: 0 20px 20px;
+  padding-bottom: max(20px, var(--safe-bottom));
+  max-height: 75dvh;
+  overflow-y: auto;
+  animation: slideUp 0.28s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+.sheet-handle {
+  width: 36px; height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  margin: 12px auto 16px;
+}
+.sheet-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: var(--text);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 11px 16px;
+  border-radius: 10px;
+  font-family: 'Syne', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s;
+  text-transform: uppercase;
+}
+.btn:active { transform: scale(0.96); opacity: 0.85; }
+.btn-accent { background: var(--accent); color: #0a0a0c; }
+.btn-outline { background: none; border: 1.5px solid var(--border); color: var(--text); }
+.btn-outline:active { border-color: var(--accent); }
+.btn-danger { background: rgba(255,60,60,0.12); border: 1px solid rgba(255,60,60,0.3); color: #ff6060; }
+.btn-full { width: 100%; }
+.btn:disabled { opacity: 0.35; pointer-events: none; }
+
+.bottom-nav {
+  display: flex;
+  background: rgba(10,10,12,0.96);
+  backdrop-filter: blur(16px);
+  border-top: 1px solid var(--border);
+  padding-bottom: max(8px, env(safe-area-inset-bottom, 0px));
+  flex-shrink: 0;
+}
+.nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 10px 4px 6px;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 0.6rem;
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.nav-item .nav-icon { font-size: 1.3rem; line-height: 1; }
+.nav-item.active { color: var(--accent); }
+.nav-item:active { opacity: 0.6; }
+
+.page { display: none; }
+.page.active { display: block; }
+
+.toast {
+  position: fixed; bottom: max(80px, calc(60px + 16px)); left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 9px 18px;
+  font-size: 0.82rem;
+  white-space: nowrap;
+  opacity: 0;
+  transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  z-index: 999;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.ok { border-color: var(--accent); color: var(--accent); }
+.toast.err { border-color: var(--accent2); color: var(--accent2); }
+
+::-webkit-scrollbar { display: none; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="topbar">
+    <div class="logo">✈ Travel<span>Edit</span></div>
+    <div class="topbar-right">
+      <div class="icon-btn" onclick="exportProject()">💾</div>
+      <div class="icon-btn" onclick="if(confirm('全クリア？'))clearAll()">🗑</div>
+    </div>
+  </div>
+
+  <div class="content" id="contentArea">
+    <div class="page active" id="page-media">
+      <div class="preview-wrap" id="previewWrap">
+        <div class="preview-empty-state" id="prevEmpty">
+          <div class="big-icon">🎬</div>
+          <p>素材を追加して<br>タイムラインを生成しよう</p>
+        </div>
+        <img id="prevImg" src="" alt="">
+        <video id="prevVid" controls muted playsinline></video>
+        <div class="preview-title-overlay" id="prevTitleOverlay">
+          <div class="title-txt" id="prevTitleTxt"></div>
+        </div>
+        <div class="preview-watermark" id="prevWatermark">✈ Travel Vlog</div>
+      </div>
+
+      <div class="preview-nav">
+        <button class="pnav-btn" onclick="prevClipNav(-1)">◀ 前</button>
+        <button class="pnav-btn" onclick="prevClipNav(1)">次 ▶</button>
+        <span class="clip-counter" id="clipCounter">0 クリップ</span>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <span class="section-title">📁 素材</span>
+          <span class="section-action" onclick="document.getElementById('fileInput').click()">＋ 追加</span>
+        </div>
+        <input type="file" id="fileInput" multiple accept="image/*,video/*" style="display:none" onchange="handleFiles(this.files)">
+        <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+          <div class="upload-icon">📸</div>
+          <p><strong>タップ</strong>して写真・動画を選択<br><span style="font-size:0.72rem">JPG / PNG / MP4 / MOV など</span></p>
+        </div>
+        <div class="media-scroll" id="mediaScroll" style="margin-top:10px"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <span class="section-title">⏱ タイムライン</span>
+          <span class="section-action" onclick="buildTimeline()">⚡ 自動生成</span>
+        </div>
+        <div class="timeline-scroll" id="timelineScroll">
+          <span class="tl-empty" id="tlEmpty">「自動生成」で並び順を作成</span>
+        </div>
+        <div style="display:flex; gap:8px; margin-top:8px">
+          <button class="btn btn-outline" style="flex:1;font-size:0.72rem" onclick="addTitleClip()">＋ タイトル挿入</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="page" id="page-settings">
+      <div class="section">
+        <div class="section-title" style="margin-bottom:14px">🎬 動画設定</div>
+        <div class="field">
+          <label>タイトル</label>
+          <input type="text" id="titleInput" placeholder="My Travel Vlog" oninput="updateWatermarkLive()">
+        </div>
+        <div class="field">
+          <label>サブタイトル</label>
+          <input type="text" id="subtitleInput" placeholder="Summer 2025">
+        </div>
+        <div class="field">
+          <label>ウォーターマーク</label>
+          <input type="text" id="watermarkInput" placeholder="✈ Travel Vlog" oninput="updateWatermarkLive()">
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title" style="margin-bottom:14px">🎵 BGM</div>
+        <div class="bgm-upload" onclick="document.getElementById('bgmInput').click()">
+          <input type="file" id="bgmInput" accept="audio/*" onchange="handleBGM(this.files)">
+          <p>🎵 タップしてBGM選択（MP3 / WAV）</p>
+        </div>
+        <div id="bgmActive" class="bgm-active" style="display:none"></div>
+        <div id="bgmVolWrap" style="display:none; margin-top:12px">
+          <div class="field">
+            <label>BGM音量: <span id="volLabel">30</span>%</label>
+            <input type="range" min="0" max="100" value="30" id="bgmVol"
+              oninput="document.getElementById('volLabel').textContent=this.value">
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title" style="margin-bottom:14px">⚙️ 出力設定</div>
+        <div class="field">
+          <label>写真1枚の表示時間: <span id="slideLabel">3秒</span></label>
+          <input type="range" min="1" max="8" value="3" step="0.5" id="slideDur"
+            oninput="document.getElementById('slideLabel').textContent=this.value+'秒'">
+        </div>
+        <div class="field">
+          <label>トランジション</label>
+          <select id="transitionSel">
+            <option value="fade">フェード（なめらか）</option>
+            <option value="cut">カット（瞬間）</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="section">
+        <button class="btn btn-accent btn-full" onclick="exportProject()" id="exportBtn" disabled>
+          💾 プロジェクト書き出し
+        </button>
+        <p style="font-size:0.72rem; color:var(--muted); text-align:center; margin-top:8px; line-height:1.5">
+          設定＆クリップ順をJSONで保存<br>Pythonコマンドも含まれます
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-nav">
+    <div class="nav-item active" id="nav-media" onclick="switchPage('media')">
+      <span class="nav-icon">📽</span>素材
+    </div>
+    <div class="nav-item" id="nav-settings" onclick="switchPage('settings')">
+      <span class="nav-icon">⚙️</span>設定
+    </div>
+  </div>
+</div>
+
+<div class="sheet-overlay" id="sheetOverlay" onclick="closeSheet(event)">
+  <div class="sheet" id="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="sheetTitle">クリップ詳細</div>
+    <div id="sheetBody"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const S = { media: [], timeline: [], bgm: null, previewIdx: 0 };
+let mid = 0, cid = 0;
+
+function switchPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  document.getElementById('nav-'+name).classList.add('active');
+  document.getElementById('contentArea').scrollTop = 0;
+}
+
+function handleFiles(files) {
+  let count = 0;
+  Array.from(files).forEach(f => {
+    if (!f.type.match(/^(image|video)\//)) return;
+    const isImg = f.type.startsWith('image/');
+    const src = URL.createObjectURL(f);
+    const item = { id: ++mid, name: f.name, type: isImg ? 'photo' : 'video', src, duration: 0, file: f };
+    if (!isImg) {
+      const v = document.createElement('video');
+      v.src = src;
+      v.onloadedmetadata = () => { item.duration = v.duration; renderMedia(); };
+    }
+    S.media.push(item);
+    count++;
+  });
+  renderMedia();
+  if (count) toast(count + '件追加 🎉', 'ok');
+}
+
+function handleBGM(files) {
+  if (!files[0]) return;
+  S.bgm = files[0];
+  document.getElementById('bgmActive').style.display = 'block';
+  document.getElementById('bgmActive').textContent = '🎵 ' + files[0].name;
+  document.getElementById('bgmVolWrap').style.display = 'block';
+  toast('BGM設定 🎵', 'ok');
+}
+
+function renderMedia() {
+  const scroll = document.getElementById('mediaScroll');
+  scroll.innerHTML = '';
+  S.media.forEach(item => {
+    const d = document.createElement('div');
+    d.className = 'media-thumb';
+    d.dataset.id = item.id;
+    if (item.type === 'photo') {
+      d.innerHTML = `<img src="${item.src}" loading="lazy">`;
+    } else {
+      d.innerHTML = `<video src="${item.src}" preload="metadata"></video>`;
+    }
+    d.innerHTML += `
+      <span class="thumb-badge ${item.type}">${item.type==='photo'?'PHO':'VID'}</span>
+      <button class="thumb-rm" onclick="rmMedia(${item.id},event)">✕</button>
+      ${item.duration ? `<span class="thumb-dur">${fmtDur(item.duration)}</span>` : ''}
+    `;
+    d.addEventListener('click', () => previewItem(item));
+    scroll.appendChild(d);
+  });
+}
+
+function rmMedia(id, e) {
+  e.stopPropagation();
+  S.media = S.media.filter(m => m.id !== id);
+  S.timeline = S.timeline.filter(c => c.mediaId !== id);
+  renderMedia();
+  renderTimeline();
+}
+
+function previewItem(item) {
+  document.getElementById('prevEmpty').style.display = 'none';
+  document.getElementById('prevTitleOverlay').style.display = 'none';
+  document.getElementById('prevWatermark').style.display = 'block';
+  const wm = document.getElementById('watermarkInput').value || '✈ Travel Vlog';
+  document.getElementById('prevWatermark').textContent = wm;
+  if (item.type === 'photo') {
+    document.getElementById('prevImg').src = item.src;
+    document.getElementById('prevImg').style.display = 'block';
+    document.getElementById('prevVid').style.display = 'none';
+  } else {
+    document.getElementById('prevVid').src = item.src;
+    document.getElementById('prevVid').style.display = 'block';
+    document.getElementById('prevImg').style.display = 'none';
+  }
+}
+
+function previewClip(clip) {
+  if (clip.kind === 'title') {
+    document.getElementById('prevEmpty').style.display = 'none';
+    document.getElementById('prevImg').style.display = 'none';
+    document.getElementById('prevVid').style.display = 'none';
+    document.getElementById('prevWatermark').style.display = 'none';
+    document.getElementById('prevTitleTxt').textContent = clip.label;
+    document.getElementById('prevTitleOverlay').style.display = 'flex';
+    return;
+  }
+  const item = S.media.find(m => m.id === clip.mediaId);
+  if (item) previewItem(item);
+}
+
+function prevClipNav(dir) {
+  if (!S.timeline.length) return;
+  S.previewIdx = (S.previewIdx + dir + S.timeline.length) % S.timeline.length;
+  previewClip(S.timeline[S.previewIdx]);
+  highlightTLClip(S.timeline[S.previewIdx].id);
+}
+
+function updateWatermarkLive() {
+  const wm = document.getElementById('watermarkInput').value || '✈ Travel Vlog';
+  document.getElementById('prevWatermark').textContent = wm;
+}
+
+function buildTimeline() {
+  if (!S.media.length) { toast('素材を先に追加！', 'err'); return; }
+  S.timeline = [];
+  const title = document.getElementById('titleInput').value || 'My Travel Vlog';
+  const sub   = document.getElementById('subtitleInput').value;
+  const label = title + (sub ? ' / ' + sub : '');
+  S.timeline.push({ id: ++cid, kind: 'title', label, mediaId: null });
+  const photos = S.media.filter(m => m.type === 'photo');
+  const videos = S.media.filter(m => m.type === 'video');
+  const slen   = parseFloat(document.getElementById('slideDur').value) || 3;
+  photos.forEach(p => S.timeline.push({ id: ++cid, kind: 'photo', mediaId: p.id, label: p.name, slideLen: slen }));
+  videos.forEach(v => S.timeline.push({ id: ++cid, kind: 'video', mediaId: v.id, label: v.name, trimStart: 0, trimEnd: v.duration }));
+  renderTimeline();
+  document.getElementById('exportBtn').disabled = false;
+  toast('タイムライン生成 ✅', 'ok');
+  if (S.timeline.length) { S.previewIdx = 0; previewClip(S.timeline[0]); }
+}
+
+function renderTimeline() {
+  const scroll = document.getElementById('timelineScroll');
+  const empty  = document.getElementById('tlEmpty');
+  document.getElementById('clipCounter').textContent = S.timeline.length + ' クリップ';
+  if (!S.timeline.length) {
+    scroll.innerHTML = '';
+    scroll.appendChild(empty);
+    document.getElementById('exportBtn').disabled = true;
+    return;
+  }
+  if (empty.parentNode === scroll) scroll.removeChild(empty);
+  scroll.innerHTML = '';
+  S.timeline.forEach((clip) => {
+    const d = document.createElement('div');
+    d.className = `tl-clip clip-${clip.kind === 'title' ? 'title' : clip.kind}`;
+    d.dataset.cid = clip.id;
+    const icon = { title: '🅣', photo: '📷', video: '🎥' }[clip.kind] || '●';
+    const nm = clip.label.length > 12 ? clip.label.slice(0,12)+'…' : clip.label;
+    d.innerHTML = `<span>${icon}</span><span>${nm}</span><button class="tl-rm" onclick="rmClip(${clip.id},event)">✕</button>`;
+    d.style.width = clip.kind === 'video' ? Math.max(72, Math.min((clip.trimEnd||10)*10,160))+'px'
+                  : clip.kind === 'title' ? '80px' : '64px';
+    d.addEventListener('click', () => { openClipSheet(clip); highlightTLClip(clip.id); previewClip(clip); });
+    scroll.appendChild(d);
+  });
+}
+
+function highlightTLClip(id) {
+  document.querySelectorAll('.tl-clip').forEach(el => {
+    el.classList.toggle('active', parseInt(el.dataset.cid) === id);
+  });
+}
+
+function rmClip(id, e) {
+  e.stopPropagation();
+  S.timeline = S.timeline.filter(c => c.id !== id);
+  renderTimeline();
+}
+
+function addTitleClip() {
+  S.timeline.push({ id: ++cid, kind: 'title', label: 'Chapter', mediaId: null });
+  renderTimeline();
+  toast('タイトル追加', 'ok');
+}
+
+function openClipSheet(clip) {
+  const item = clip.mediaId ? S.media.find(m => m.id === clip.mediaId) : null;
+  document.getElementById('sheetTitle').textContent =
+    clip.kind === 'title' ? '📝 タイトルクリップ' :
+    clip.kind === 'photo' ? '📷 写真クリップ' : '🎥 動画クリップ';
+  let body = '';
+  if (clip.kind === 'title') {
+    body = `<div class="field"><label>テキスト</label><input type="text" value="${clip.label}" oninput="updateClipLabel(${clip.id},this.value)"></div>`;
+  } else if (clip.kind === 'photo') {
+    body = `<div class="field"><label>表示時間 (秒)</label><input type="number" min="0.5" step="0.5" value="${clip.slideLen||3}" oninput="clip.slideLen=+this.value"></div>`;
+  } else {
+    body = `
+      <div class="field"><label>トリミング開始 (秒)</label><input type="number" min="0" step="0.5" value="${clip.trimStart||0}" oninput="clip.trimStart=+this.value; renderTimeline()"></div>
+      <div class="field"><label>トリミング終了 (秒)</label><input type="number" min="0" step="0.5" value="${clip.trimEnd||item?.duration||0}" oninput="clip.trimEnd=+this.value; renderTimeline()"></div>
+      <div style="font-size:0.78rem; color:var(--muted); margin-bottom:14px">元の長さ: ${item?.duration ? fmtDur(item.duration) : '-'}</div>`;
+  }
+  body += `
+    <div style="display:flex; gap:8px; margin-top:4px">
+      <button class="btn btn-outline" style="flex:1" onclick="moveClip(${clip.id},-1);renderTimeline()">← 前へ</button>
+      <button class="btn btn-outline" style="flex:1" onclick="moveClip(${clip.id},1);renderTimeline()">後へ →</button>
+    </div>
+    <button class="btn btn-danger btn-full" style="margin-top:10px" onclick="rmClip(${clip.id},{stopPropagation:()=>{}}); closeSheet()">削除</button>`;
+  document.getElementById('sheetBody').innerHTML = body;
+  document.getElementById('sheetOverlay').classList.add('open');
+}
+
+function closeSheet(e) {
+  if (e && e.target !== document.getElementById('sheetOverlay')) return;
+  document.getElementById('sheetOverlay').classList.remove('open');
+}
+
+function updateClipLabel(id, val) {
+  const c = S.timeline.find(c => c.id === id);
+  if (c) { c.label = val; renderTimeline(); }
+}
+
+function moveClip(id, dir) {
+  const i = S.timeline.findIndex(c => c.id === id);
+  if (i < 0) return;
+  const ni = i + dir;
+  if (ni < 0 || ni >= S.timeline.length) return;
+  [S.timeline[i], S.timeline[ni]] = [S.timeline[ni], S.timeline[i]];
+}
+
+function exportProject() {
+  if (!S.timeline.length) { toast('タイムラインが空です', 'err'); return; }
+  const title = document.getElementById('titleInput').value || 'My Travel Vlog';
+  const sub   = document.getElementById('subtitleInput').value;
+  const wm    = document.getElementById('watermarkInput').value || '✈ Travel Vlog';
+  const vol   = document.getElementById('bgmVol').value / 100;
+  const slen  = document.getElementById('slideDur').value;
+  const trans = document.getElementById('transitionSel').value;
+  let cmd = `python3 travel_editor.py ./media/ output.mp4 --title "${title}"`;
+  if (sub) cmd += ` --subtitle "${sub}"`;
+  if (S.bgm) cmd += ` --bgm "${S.bgm.name}" --bgm-vol ${vol}`;
+  cmd += ` --watermark "${wm}"`;
+  const data = {
+    title, subtitle: sub, watermark: wm,
+    bgm: S.bgm ? { name: S.bgm.name, volume: vol } : null,
+    slideDuration: +slen, transition: trans,
+    clips: S.timeline.map(c => {
+      const item = c.mediaId ? S.media.find(m => m.id === c.mediaId) : null;
+      return { kind: c.kind, label: c.label, file: item?.name||null, trimStart: c.trimStart, trimEnd: c.trimEnd, slideLen: c.slideLen };
+    }),
+    pythonCommand: cmd,
+    exportedAt: new Date().toISOString(),
+  };
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(data,null,2)], {type:'application/json'}));
+  a.download = 'travel_project.json';
+  a.click();
+  toast('書き出し完了 📦', 'ok');
+}
+
+function clearAll() {
+  S.media = []; S.timeline = []; S.bgm = null;
+  renderMedia(); renderTimeline();
+  document.getElementById('bgmActive').style.display = 'none';
+  document.getElementById('bgmVolWrap').style.display = 'none';
+  document.getElementById('prevEmpty').style.display = 'flex';
+  document.getElementById('prevImg').style.display = 'none';
+  document.getElementById('prevVid').style.display = 'none';
+  document.getElementById('prevTitleOverlay').style.display = 'none';
+  toast('クリア完了', 'ok');
+}
+
+function fmtDur(s) {
+  const m = Math.floor(s/60), sec = Math.floor(s%60);
+  return `${m}:${String(sec).padStart(2,'0')}`;
+}
+
+let toastT;
+function toast(msg, type='') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast show ${type}`;
+  clearTimeout(toastT);
+  toastT = setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+const uz = document.getElementById('uploadZone');
+uz.addEventListener('dragover', e => { e.preventDefault(); uz.classList.add('drag-over'); });
+uz.addEventListener('dragleave', () => uz.classList.remove('drag-over'));
+uz.addEventListener('drop', e => {
+  e.preventDefault();
+  uz.classList.remove('drag-over');
+  handleFiles(e.dataTransfer.files);
+});
+</script>
+</body>
+</html>
